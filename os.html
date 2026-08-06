@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibeOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-alt: #1c2129;
+      --text: #e6edf3;
+      --text-sec: #8b949e;
+      --text-muted: #484f58;
+      --accent: #58a6ff;
+      --teal: #39d0d8;
+      --border: #21262d;
+      --border-light: #30363d;
+      --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --topbar-h: 40px;
+      --sidebar-w: 72px;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    /* ===== TOP BAR ===== */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--topbar-h);
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      z-index: 9999;
+    }
+
+    .topbar-logo {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+      display: flex; align-items: center; gap: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .topbar-logo .dot {
+      width: 7px; height: 7px;
+      background: var(--teal);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(57, 208, 216, 0.5);
+      animation: pulse-dot 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(57, 208, 216, 0.5); }
+      50% { opacity: 0.6; box-shadow: 0 0 4px rgba(57, 208, 216, 0.3); }
+    }
+
+    .topbar-clock {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-sec);
+      letter-spacing: 0.5px;
+      position: absolute;
+      left: 50%; transform: translateX(-50%);
+    }
+
+    .topbar-status {
+      display: flex; align-items: center; gap: 14px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .topbar-status span {
+      display: flex; align-items: center;
+      font-size: 13px;
+      opacity: 0.7;
+    }
+
+    .topbar-kbd {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .topbar-kbd:hover { background: rgba(255,255,255,0.08); color: var(--text-sec); }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      position: fixed;
+      top: var(--topbar-h); left: 0;
+      width: var(--sidebar-w);
+      height: calc(100% - var(--topbar-h));
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      align-items: center;
+      padding: 14px 0;
+      gap: 6px;
+      z-index: 500;
+    }
+
+    .sidebar-btn {
+      width: 56px; height: 56px;
+      border: none; background: transparent;
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-btn .sb-icon { font-size: 22px; line-height: 1; }
+    .sidebar-btn .sb-label {
+      font-family: var(--font-ui);
+      font-size: 9px; font-weight: 500;
+      color: var(--text-sec);
+      letter-spacing: 0.02em;
+    }
+
+    .sidebar-btn.unlocked:hover {
+      background: var(--surface-alt);
+      transform: scale(1.05);
+    }
+    .sidebar-btn.unlocked.active {
+      border-left-color: var(--accent);
+      background: rgba(88, 166, 255, 0.06);
+    }
+    .sidebar-btn.unlocked .sb-label { color: var(--text-sec); }
+
+    .sidebar-btn.locked {
+      opacity: 0.35;
+      cursor: default;
+    }
+    .sidebar-btn.locked .sb-label { color: var(--text-muted); }
+
+    .sidebar-btn .lock-badge {
+      position: absolute; bottom: 4px; right: 4px;
+      font-size: 8px; line-height: 1;
+    }
+
+    /* Sidebar tooltip */
+    .sidebar-btn.locked::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%; transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-sec);
+      background: var(--surface-alt);
+      border: 1px solid var(--border-light);
+      padding: 6px 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 9000;
+    }
+    .sidebar-btn.locked:hover::after { opacity: 1; }
+
+    .sidebar-spacer { flex: 1; }
+
+    /* ===== DESKTOP ===== */
+    .desktop {
+      position: fixed;
+      top: var(--topbar-h);
+      left: var(--sidebar-w);
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+      /* Dot grid */
+      background-color: var(--bg);
+      background-image: radial-gradient(rgba(88, 166, 255, 0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ===== DOCK ===== */
+    .dock {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 64px;
+      padding: 10px 20px;
+      background: rgba(22, 27, 34, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      display: flex; align-items: center; gap: 8px;
+      z-index: 800;
+    }
+
+    .dock-btn {
+      width: 44px; height: 44px;
+      border: none; background: transparent;
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dock-btn .dk-icon { font-size: 24px; line-height: 1; }
+    .dock-btn .dk-label {
+      font-size: 8px; font-weight: 500;
+      color: var(--text-sec);
+      font-family: var(--font-ui);
+    }
+
+    .dock-btn.unlocked:hover {
+      transform: translateY(-8px) scale(1.1);
+    }
+
+    .dock-btn.unlocked .dock-indicator {
+      width: 4px; height: 4px;
+      background: var(--accent);
+      border-radius: 50%;
+      position: absolute;
+      bottom: -6px;
+      display: none;
+    }
+    .dock-btn.unlocked.running .dock-indicator { display: block; }
+
+    .dock-btn.locked {
+      opacity: 0.4;
+      filter: grayscale(1);
+      cursor: default;
+    }
+    .dock-btn.locked:hover { transform: none; }
+
+    .dock-btn .lock-badge {
+      position: absolute; bottom: 0; right: 0;
+      font-size: 8px; line-height: 1;
+    }
+
+    .dock-sep {
+      width: 1px; height: 32px;
+      background: rgba(255,255,255,0.06);
+      margin: 0 4px;
+    }
+
+    /* ===== WINDOW ===== */
+    .os-window {
+      position: absolute;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(88,166,255,0.08);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      min-width: 360px;
+      min-height: 260px;
+      transition: opacity 0.15s, box-shadow 0.2s;
+    }
+
+    .os-window.opening {
+      animation: windowOpen 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes windowOpen {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .os-window.closing {
+      animation: windowClose 0.2s ease-in forwards;
+    }
+
+    @keyframes windowClose {
+      to { transform: scale(0.92); opacity: 0; }
+    }
+
+    .os-window.maximizing {
+      transition: top 0.3s cubic-bezier(0.16,1,0.3,1),
+                  left 0.3s cubic-bezier(0.16,1,0.3,1),
+                  width 0.3s cubic-bezier(0.16,1,0.3,1),
+                  height 0.3s cubic-bezier(0.16,1,0.3,1),
+                  border-radius 0.3s;
+    }
+
+    .os-window.inactive {
+      opacity: 0.85;
+      filter: brightness(0.9);
+      box-shadow: 0 16px 50px rgba(0,0,0,0.4);
+    }
+
+    .os-window.minimized {
+      animation: windowMinimize 0.3s ease-in forwards;
+      pointer-events: none;
+    }
+
+    @keyframes windowMinimize {
+      to {
+        transform: scale(0.3) translateY(60vh);
+        opacity: 0;
+      }
+    }
+
+    .os-window.restoring {
+      animation: windowRestore 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+
+    @keyframes windowRestore {
+      from { transform: scale(0.3) translateY(60vh); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .window-titlebar {
+      height: 40px;
+      background: var(--surface-alt);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px;
+      cursor: default;
+      flex-shrink: 0;
+    }
+
+    .window-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-sec);
+      pointer-events: none;
+    }
+    .window-title .wt-icon { font-size: 15px; }
+
+    .window-controls {
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .window-controls button {
+      width: 28px; height: 28px;
+      border: none; background: transparent;
+      border-radius: 50%;
+      color: var(--text-muted);
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font-ui);
+      line-height: 1;
+    }
+
+    .window-controls button:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+    }
+
+    .window-controls .win-close:hover {
+      background: rgba(248, 81, 73, 0.2);
+      color: #f85149;
+    }
+
+    .window-body {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .window-body iframe {
+      width: 100%; height: 100%;
+      border: none;
+      background: var(--bg);
+      display: block;
+    }
+
+    .resize-handle {
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 18px; height: 18px;
+      cursor: nwse-resize;
+      z-index: 10;
+    }
+
+    .resize-handle::after {
+      content: '';
+      position: absolute;
+      bottom: 4px; right: 4px;
+      width: 8px; height: 8px;
+      border-right: 2px solid var(--text-muted);
+      border-bottom: 2px solid var(--text-muted);
+      opacity: 0.4;
+      transition: opacity 0.15s;
+    }
+
+    .resize-handle:hover::after { opacity: 0.8; }
+
+    /* ===== CONTEXT MENU ===== */
+    .ctx-menu {
+      position: fixed;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 6px;
+      min-width: 200px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+      z-index: 10000;
+      display: none;
+    }
+
+    .ctx-menu.show { display: block; }
+
+    .ctx-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px;
+      border-radius: 7px;
+      font-size: 13px;
+      color: var(--text-sec);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .ctx-item:hover {
+      background: rgba(88, 166, 255, 0.08);
+      color: var(--text);
+    }
+
+    .ctx-item .ctx-icon { font-size: 14px; width: 20px; text-align: center; }
+    .ctx-sep {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 8px;
+    }
+
+    /* ===== COMMAND PALETTE ===== */
+    .cmd-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 20000;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 18vh;
+    }
+
+    .cmd-overlay.show {
+      display: flex;
+      animation: fadeIn 0.15s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .cmd-palette {
+      width: 560px;
+      max-width: 92vw;
+      max-height: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      animation: cmdSlideIn 0.2s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    @keyframes cmdSlideIn {
+      from { transform: scale(0.96) translateY(-8px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .cmd-input-wrap {
+      display: flex; align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+    }
+
+    .cmd-prompt {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .cmd-input {
+      flex: 1;
+      background: transparent;
+      border: none; outline: none;
+      font-family: var(--font-ui);
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .cmd-input::placeholder { color: var(--text-muted); }
+
+    .cmd-results {
+      overflow-y: auto; flex: 1;
+      padding: 6px;
+    }
+
+    .cmd-result {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .cmd-result:hover, .cmd-result.active {
+      background: rgba(88, 166, 255, 0.08);
+    }
+
+    .cmd-result .cr-icon { font-size: 16px; width: 24px; text-align: center; }
+    .cmd-result .cr-text { font-size: 13.5px; color: var(--text-sec); }
+    .cmd-result.active .cr-text { color: var(--text); }
+
+    .cmd-result .cr-kbd {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    /* ===== TOAST ===== */
+    .toast-container {
+      position: fixed;
+      top: calc(var(--topbar-h) + 12px);
+      left: 50%; transform: translateX(-50%);
+      z-index: 30000;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--surface-alt);
+      border: 1px solid var(--border-light);
+      padding: 10px 20px;
+      border-radius: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      display: flex; align-items: center; gap: 8px;
+      animation: toastIn 0.3s cubic-bezier(0.16,1,0.3,1);
+      pointer-events: auto;
+    }
+
+    .toast.out {
+      animation: toastOut 0.25s ease-in forwards;
+    }
+
+    @keyframes toastIn {
+      from { transform: translateY(-12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes toastOut {
+      to { transform: translateY(-12px); opacity: 0; }
+    }
+
+    /* ===== ABOUT MODAL ===== */
+    .about-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 25000;
+      display: none;
+      align-items: center; justify-content: center;
+    }
+    .about-overlay.show { display: flex; }
+
+    .about-modal {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 36px;
+      max-width: 400px;
+      width: 90vw;
+      text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+      animation: cmdSlideIn 0.25s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .about-modal h2 {
+      font-family: var(--font-mono);
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .about-modal .ver {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--teal);
+      margin-bottom: 18px;
+    }
+
+    .about-modal p {
+      font-size: 13.5px;
+      color: var(--text-sec);
+      line-height: 1.7;
+      margin-bottom: 22px;
+    }
+
+    .about-modal button {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 8px 24px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .about-modal button:hover { background: #79b8ff; }
+
+    /* ===== MOBILE ===== */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .dock { display: none; }
+      .desktop { left: 0; }
+
+      .mobile-tabbar {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        height: 64px;
+        background: rgba(22, 27, 34, 0.95);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-around;
+        z-index: 800;
+        padding: 0 8px;
+      }
+
+      .mobile-tab {
+        width: 48px; height: 48px;
+        border: none; background: transparent;
+        border-radius: 12px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 2px;
+        cursor: pointer;
+        position: relative;
+      }
+      .mobile-tab .mt-icon { font-size: 22px; }
+      .mobile-tab .mt-label { font-size: 8px; color: var(--text-muted); font-family: var(--font-ui); }
+      .mobile-tab.locked { opacity: 0.35; }
+      .mobile-tab .lock-badge { position: absolute; bottom: 2px; right: 2px; font-size: 7px; }
+
+      .os-window {
+        top: var(--topbar-h) !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: calc(100% - var(--topbar-h) - 64px) !important;
+        border-radius: 0 !important;
+        min-width: unset !important;
+      }
+
+      .os-window.maximized-state {
+        height: calc(100% - var(--topbar-h) - 64px) !important;
+      }
+
+      .resize-handle { display: none; }
+    }
+
+    @media (min-width: 769px) {
+      .mobile-tabbar { display: none !important; }
+    }
+
+    /* ===== SCROLLBAR inside palette ===== */
+    .cmd-results::-webkit-scrollbar { width: 5px; }
+    .cmd-results::-webkit-scrollbar-track { background: transparent; }
+    .cmd-results::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+    /* ===== WELCOME WATERMARK ===== */
+    .desktop-watermark {
+      position: absolute;
+      bottom: 90px; right: 40px;
+      text-align: right;
+      pointer-events: none;
+      opacity: 0.15;
+    }
+    .desktop-watermark h3 {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-sec);
+      font-weight: 500;
+    }
+    .desktop-watermark p {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .desktop-watermark { bottom: 80px; right: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      VibeOS<span class="dot"></span>
+    </div>
+    <div class="topbar-clock" id="clock">--:-- --</div>
+    <div class="topbar-status">
+      <span class="topbar-kbd" id="cmdKbdTrigger" title="Command Palette">⌘K</span>
+      <span title="Wi-Fi">📶</span>
+      <span title="Battery">🔋</span>
+      <span title="User">👤</span>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar"></nav>
+
+  <!-- DESKTOP -->
+  <main class="desktop" id="desktop">
+    <div class="desktop-watermark">
+      <h3>> welcome to VibeOS</h3>
+      <p>click Notes to get started &bull; ⌘K for commands</p>
+    </div>
+  </main>
+
+  <!-- DOCK -->
+  <div class="dock" id="dock"></div>
+
+  <!-- MOBILE TAB BAR -->
+  <div class="mobile-tabbar" id="mobileTabbar"></div>
+
+  <!-- CONTEXT MENU -->
+  <div class="ctx-menu" id="ctxMenu">
+    <div class="ctx-item" data-action="newNote"><span class="ctx-icon">📝</span>New Note</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-action="refresh"><span class="ctx-icon">🔄</span>Refresh Desktop</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-action="about"><span class="ctx-icon">ℹ️</span>About VibeOS</div>
+  </div>
+
+  <!-- COMMAND PALETTE -->
+  <div class="cmd-overlay" id="cmdOverlay">
+    <div class="cmd-palette">
+      <div class="cmd-input-wrap">
+        <span class="cmd-prompt">></span>
+        <input class="cmd-input" id="cmdInput" type="text" placeholder="Type a command or search..." autocomplete="off" spellcheck="false">
+      </div>
+      <div class="cmd-results" id="cmdResults"></div>
+    </div>
+  </div>
+
+  <!-- ABOUT MODAL -->
+  <div class="about-overlay" id="aboutOverlay">
+    <div class="about-modal">
+      <h2>VibeOS</h2>
+      <div class="ver">v1.0.0 — built with vibes</div>
+      <p>A browser-based operating system shell for the 30 Days challenge. Built entirely with AI prompts. No code was hand-written.</p>
+      <button onclick="closeAbout()">Close</button>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // ===== APP DEFINITIONS =====
+    const APPS = [
+      { id: 'notes',     icon: '📝', name: 'Notes',      unlocked: true,  day: 1, src: 'apps/notes.html' },
+      { id: 'whiteboard',icon: '🎨', name: 'Whiteboard', unlocked: false, day: 3, src: 'apps/whiteboard.html' },
+      { id: 'kanban',    icon: '📋', name: 'Kanban',     unlocked: false, day: 5, src: 'apps/kanban.html' },
+      { id: 'code',      icon: '💻', name: 'Code',       unlocked: false, day: 7, src: 'apps/code.html' },
+      { id: 'calendar',  icon: '🗓️', name: 'Calendar',   unlocked: false, day: 10, src: 'apps/calendar.html' },
+      { id: 'settings',  icon: '⚙️', name: 'Settings',   unlocked: false, day: 15, src: 'apps/settings.html' },
+    ];
+
+    const CMD_ITEMS = [
+      { icon: '📝', label: 'Open Notes',          action: () => openApp('notes') },
+      { icon: '🔍', label: 'Toggle Focus Mode',   action: () => showToast('🧘 Focus Mode — Coming soon') },
+      { icon: 'ℹ️', label: 'About VibeOS',         action: () => { closeCmdPalette(); showAbout(); } },
+      { icon: '🔄', label: 'Refresh Desktop',      action: () => { closeCmdPalette(); showToast('🔄 Desktop refreshed'); } },
+    ];
+
+    // ===== STATE =====
+    let zCounter = 100;
+    let activeWindowId = null;
+    let windowState = {}; // { appId: { el, minimized, maximized, prevRect } }
+    let cmdActiveIdx = 0;
+    let filteredCmds = [...CMD_ITEMS];
+
+    // ===== LOCAL STORAGE =====
+    function loadSettings() {
+      try {
+        const s = JSON.parse(localStorage.getItem('vibeos_settings'));
+        return s || defaultSettings();
+      } catch { return defaultSettings(); }
+    }
+    function defaultSettings() {
+      return { theme: 'dark', unlockedApps: ['notes'], version: '1.0.0' };
+    }
+    function saveSettings(s) {
+      localStorage.setItem('vibeos_settings', JSON.stringify(s));
+    }
+    saveSettings(loadSettings());
+
+    // ===== CLOCK =====
+    function updateClock() {
+      const now = new Date();
+      let h = now.getHours();
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      document.getElementById('clock').textContent = `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ===== BUILD SIDEBAR =====
+    (function buildSidebar() {
+      const sb = document.getElementById('sidebar');
+      APPS.forEach((app, i) => {
+        const btn = document.createElement('button');
+        btn.className = `sidebar-btn ${app.unlocked ? 'unlocked' : 'locked'}`;
+        if (!app.unlocked) btn.setAttribute('data-tooltip', `Day ${app.day} — Coming Soon`);
+        btn.innerHTML = `
+          <span class="sb-icon">${app.icon}</span>
+          <span class="sb-label">${app.name}</span>
+          ${!app.unlocked ? '<span class="lock-badge">🔒</span>' : ''}
+        `;
+        btn.addEventListener('click', () => handleAppClick(app));
+        btn.setAttribute('data-app', app.id);
+        sb.appendChild(btn);
+        if (i === 0) {
+          const spacerAfter = document.createElement('div');
+          spacerAfter.style.height = '2px';
+          // no spacer needed here; add one after all to push settings
+        }
+      });
+    })();
+
+    // ===== BUILD DOCK =====
+    (function buildDock() {
+      const dock = document.getElementById('dock');
+      APPS.forEach((app, i) => {
+        const btn = document.createElement('button');
+        btn.className = `dock-btn ${app.unlocked ? 'unlocked' : 'locked'}`;
+        btn.innerHTML = `
+          <span class="dk-icon">${app.icon}</span>
+          ${!app.unlocked ? '<span class="lock-badge">🔒</span>' : ''}
+          ${app.unlocked ? '<span class="dock-indicator"></span>' : ''}
+        `;
+        btn.addEventListener('click', () => handleAppClick(app));
+        btn.setAttribute('data-app', app.id);
+        dock.appendChild(btn);
+        if (i === 0) {
+          const sep = document.createElement('div');
+          sep.className = 'dock-sep';
+          dock.appendChild(sep);
+        }
+      });
+    })();
+
+    // ===== BUILD MOBILE TAB BAR =====
+    (function buildMobileTabbar() {
+      const tb = document.getElementById('mobileTabbar');
+      APPS.forEach(app => {
+        const btn = document.createElement('button');
+        btn.className = `mobile-tab ${app.unlocked ? '' : 'locked'}`;
+        btn.innerHTML = `
+          <span class="mt-icon">${app.icon}</span>
+          <span class="mt-label">${app.name}</span>
+          ${!app.unlocked ? '<span class="lock-badge">🔒</span>' : ''}
+        `;
+        btn.addEventListener('click', () => handleAppClick(app));
+        tb.appendChild(btn);
+      });
+    })();
+
+    // ===== APP CLICK HANDLER =====
+    function handleAppClick(app) {
+      if (!app.unlocked) {
+        showToast(`🔒 Locked — Available on Day ${app.day}`);
+        return;
+      }
+      openApp(app.id);
+    }
+
+    // ===== WINDOW MANAGER =====
+    function openApp(appId) {
+      const app = APPS.find(a => a.id === appId);
+      if (!app || !app.unlocked) return;
+
+      // Already open
+      if (windowState[appId]) {
+        const ws = windowState[appId];
+        if (ws.minimized) {
+          restoreWindow(appId);
+        } else {
+          bringToFront(appId);
+          flashWindow(ws.el);
+        }
+        return;
+      }
+
+      // Close any other open window first (one at a time rule)
+      Object.keys(windowState).forEach(id => {
+        if (id !== appId) closeWindow(id, true);
+      });
+
+      const desktop = document.getElementById('desktop');
+
+      const win = document.createElement('div');
+      win.className = 'os-window opening';
+      win.setAttribute('data-app', appId);
+
+      // Compute centered position
+      const dRect = desktop.getBoundingClientRect();
+      let wW = Math.min(dRect.width * 0.8, 1100);
+      let wH = Math.min(dRect.height * 0.85, 750);
+      let wL = (dRect.width - wW) / 2;
+      let wT = (dRect.height - wH) * 0.35;
+
+      // Mobile override
+      if (window.innerWidth <= 768) {
+        wW = dRect.width;
+        wH = dRect.height;
+        wL = 0;
+        wT = 0;
+      }
+
+      win.style.cssText = `
+        top: ${wT}px; left: ${wL}px;
+        width: ${wW}px; height: ${wH}px;
+        z-index: ${++zCounter};
+      `;
+
+      win.innerHTML = `
+        <div class="window-titlebar" data-drag="true">
+          <div class="window-title">
+            <span class="wt-icon">${app.icon}</span>
+            <span>${app.name}</span>
+          </div>
+          <div class="window-controls">
+            <button class="win-min" title="Minimize">−</button>
+            <button class="win-max" title="Maximize">□</button>
+            <button class="win-close" title="Close">✕</button>
+          </div>
+        </div>
+        <div class="window-body">
+          <iframe src="${app.src}"></iframe>
+        </div>
+        <div class="resize-handle" data-resize="true"></div>
+      `;
+
+      desktop.appendChild(win);
+
+      // Store state
+      windowState[appId] = {
+        el: win,
+        minimized: false,
+        maximized: false,
+        prevRect: { top: wT, left: wL, width: wW, height: wH },
+      };
+      activeWindowId = appId;
+      updateSidebarActive();
+      updateDockRunning();
+
+      // Remove opening class after animation
+      setTimeout(() => win.classList.remove('opening'), 300);
+
+      // Wire controls
+      win.querySelector('.win-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeWindow(appId);
+      });
+      win.querySelector('.win-min').addEventListener('click', (e) => {
+        e.stopPropagation();
+        minimizeWindow(appId);
+      });
+      win.querySelector('.win-max').addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMaximize(appId);
+      });
+
+      // Double-click titlebar to maximize
+      win.querySelector('.window-titlebar').addEventListener('dblclick', () => {
+        toggleMaximize(appId);
+      });
+
+      // Click window to bring to front
+      win.addEventListener('mousedown', () => bringToFront(appId));
+
+      // Drag
+      initDrag(win, appId);
+      // Resize
+      initResize(win, appId);
+    }
+
+    function closeWindow(appId, instant = false) {
+      const ws = windowState[appId];
+      if (!ws) return;
+
+      if (instant) {
+        ws.el.remove();
+        delete windowState[appId];
+      } else {
+        ws.el.classList.add('closing');
+        setTimeout(() => {
+          ws.el.remove();
+          delete windowState[appId];
+          updateSidebarActive();
+          updateDockRunning();
+        }, 200);
+      }
+      if (activeWindowId === appId) activeWindowId = null;
+      updateSidebarActive();
+      updateDockRunning();
+    }
+
+    function minimizeWindow(appId) {
+      const ws = windowState[appId];
+      if (!ws) return;
+      ws.minimized = true;
+      ws.el.classList.add('minimized');
+      if (activeWindowId === appId) activeWindowId = null;
+      updateSidebarActive();
+    }
+
+    function restoreWindow(appId) {
+      const ws = windowState[appId];
+      if (!ws) return;
+      ws.minimized = false;
+      ws.el.classList.remove('minimized');
+      ws.el.classList.add('restoring');
+      setTimeout(() => ws.el.classList.remove('restoring'), 320);
+      bringToFront(appId);
+    }
+
+    function toggleMaximize(appId) {
+      const ws = windowState[appId];
+      if (!ws) return;
+      const win = ws.el;
+      const desktop = document.getElementById('desktop');
+      const dRect = desktop.getBoundingClientRect();
+
+      win.classList.add('maximizing');
+
+      if (!ws.maximized) {
+        // Save current rect
+        ws.prevRect = {
+          top: parseFloat(win.style.top),
+          left: parseFloat(win.style.left),
+          width: parseFloat(win.style.width),
+          height: parseFloat(win.style.height),
+        };
+        win.style.top = '0px';
+        win.style.left = '0px';
+        win.style.width = dRect.width + 'px';
+        win.style.height = dRect.height + 'px';
+        win.style.borderRadius = '0';
+        win.classList.add('maximized-state');
+        ws.maximized = true;
+      } else {
+        const r = ws.prevRect;
+        win.style.top = r.top + 'px';
+        win.style.left = r.left + 'px';
+        win.style.width = r.width + 'px';
+        win.style.height = r.height + 'px';
+        win.style.borderRadius = '12px';
+        win.classList.remove('maximized-state');
+        ws.maximized = false;
+      }
+
+      setTimeout(() => win.classList.remove('maximizing'), 350);
+    }
+
+    function bringToFront(appId) {
+      const ws = windowState[appId];
+      if (!ws) return;
+      ws.el.style.zIndex = ++zCounter;
+      activeWindowId = appId;
+
+      // Update inactive styling
+      Object.keys(windowState).forEach(id => {
+        if (id === appId) {
+          windowState[id].el.classList.remove('inactive');
+        } else {
+          windowState[id].el.classList.add('inactive');
+        }
+      });
+      updateSidebarActive();
+    }
+
+    function flashWindow(el) {
+      el.style.transition = 'box-shadow 0.15s';
+      el.style.boxShadow = '0 24px 80px rgba(0,0,0,0.6), 0 0 0 2px rgba(88,166,255,0.4)';
+      setTimeout(() => {
+        el.style.boxShadow = '';
+        el.style.transition = '';
+      }, 300);
+    }
+
+    function updateSidebarActive() {
+      document.querySelectorAll('.sidebar-btn.unlocked').forEach(btn => {
+        const id = btn.getAttribute('data-app');
+        if (windowState[id] && !windowState[id].minimized) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    }
+
+    function updateDockRunning() {
+      document.querySelectorAll('.dock-btn.unlocked').forEach(btn => {
+        const id = btn.getAttribute('data-app');
+        if (windowState[id]) {
+          btn.classList.add('running');
+        } else {
+          btn.classList.remove('running');
+        }
+      });
+    }
+
+    // ===== DRAG =====
+    function initDrag(win, appId) {
+      const titlebar = win.querySelector('.window-titlebar');
+      let isDragging = false;
+      let startX, startY, origLeft, origTop;
+
+      titlebar.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.window-controls')) return;
+        const ws = windowState[appId];
+        if (ws && ws.maximized) return;
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        origLeft = parseFloat(win.style.left);
+        origTop = parseFloat(win.style.top);
+
+        // Disable iframe pointer events during drag
+        win.querySelector('iframe').style.pointerEvents = 'none';
+        bringToFront(appId);
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        win.style.left = (origLeft + dx) + 'px';
+        win.style.top = (origTop + dy) + 'px';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        const iframe = win.querySelector('iframe');
+        if (iframe) iframe.style.pointerEvents = '';
+      });
+
+      // Touch drag
+      titlebar.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.window-controls')) return;
+        const ws = windowState[appId];
+        if (ws && ws.maximized) return;
+
+        isDragging = true;
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        origLeft = parseFloat(win.style.left);
+        origTop = parseFloat(win.style.top);
+        win.querySelector('iframe').style.pointerEvents = 'none';
+        bringToFront(appId);
+      }, { passive: true });
+
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const t = e.touches[0];
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+        win.style.left = (origLeft + dx) + 'px';
+        win.style.top = (origTop + dy) + 'px';
+      }, { passive: true });
+
+      document.addEventListener('touchend', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        const iframe = win.querySelector('iframe');
+        if (iframe) iframe.style.pointerEvents = '';
+      });
+    }
+
+    // ===== RESIZE =====
+    function initResize(win, appId) {
+      const handle = win.querySelector('.resize-handle');
+      let isResizing = false;
+      let startX, startY, origW, origH;
+
+      handle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        origW = parseFloat(win.style.width);
+        origH = parseFloat(win.style.height);
+        win.querySelector('iframe').style.pointerEvents = 'none';
+        bringToFront(appId);
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const nw = Math.max(360, origW + dx);
+        const nh = Math.max(260, origH + dy);
+        win.style.width = nw + 'px';
+        win.style.height = nh + 'px';
+
+        // Update prevRect if not maximized
+        const ws = windowState[appId];
+        if (ws && !ws.maximized) {
+          ws.prevRect.width = nw;
+          ws.prevRect.height = nh;
+        }
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!isResizing) return;
+        isResizing = false;
+        const iframe = win.querySelector('iframe');
+        if (iframe) iframe.style.pointerEvents = '';
+      });
+    }
+
+    // ===== CONTEXT MENU =====
+    const ctxMenu = document.getElementById('ctxMenu');
+    const desktop = document.getElementById('desktop');
+
+    desktop.addEventListener('contextmenu', (e) => {
+      // Only show if clicking on desktop background, not on a window
+      if (e.target.closest('.os-window')) return;
+      e.preventDefault();
+
+      const dRect = desktop.getBoundingClientRect();
+      let x = e.clientX;
+      let y = e.clientY;
+
+      // Keep menu in viewport
+      ctxMenu.classList.add('show');
+      const mW = ctxMenu.offsetWidth;
+      const mH = ctxMenu.offsetHeight;
+      if (x + mW > window.innerWidth) x = window.innerWidth - mW - 8;
+      if (y + mH > window.innerHeight) y = window.innerHeight - mH - 8;
+
+      ctxMenu.style.left = x + 'px';
+      ctxMenu.style.top = y + 'px';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.ctx-menu')) {
+        ctxMenu.classList.remove('show');
+      }
+    });
+
+    document.querySelectorAll('.ctx-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const action = item.getAttribute('data-action');
+        ctxMenu.classList.remove('show');
+        if (action === 'newNote') {
+          openApp('notes');
+        } else if (action === 'refresh') {
+          showToast('🔄 Desktop refreshed');
+        } else if (action === 'about') {
+          showAbout();
+        }
+      });
+    });
+
+    // ===== COMMAND PALETTE =====
+    const cmdOverlay = document.getElementById('cmdOverlay');
+    const cmdInput = document.getElementById('cmdInput');
+    const cmdResults = document.getElementById('cmdResults');
+
+    function openCmdPalette() {
+      cmdOverlay.classList.add('show');
+      cmdInput.value = '';
+      cmdActiveIdx = 0;
+      filteredCmds = [...CMD_ITEMS];
+      renderCmdResults();
+      setTimeout(() => cmdInput.focus(), 50);
+    }
+
+    function closeCmdPalette() {
+      cmdOverlay.classList.remove('show');
+      cmdInput.value = '';
+    }
+
+    function renderCmdResults() {
+      cmdResults.innerHTML = '';
+      filteredCmds.forEach((item, i) => {
+        const div = document.createElement('div');
+        div.className = `cmd-result ${i === cmdActiveIdx ? 'active' : ''}`;
+        div.innerHTML = `
+          <span class="cr-icon">${item.icon}</span>
+          <span class="cr-text">${item.label}</span>
+          ${i === 0 ? '<span class="cr-kbd">↵</span>' : ''}
+        `;
+        div.addEventListener('click', () => {
+          closeCmdPalette();
+          item.action();
+        });
+        div.addEventListener('mouseenter', () => {
+          cmdActiveIdx = i;
+          renderCmdResults();
+        });
+        cmdResults.appendChild(div);
+      });
+    }
+
+    cmdInput.addEventListener('input', () => {
+      const q = cmdInput.value.toLowerCase().trim();
+      if (!q) {
+        filteredCmds = [...CMD_ITEMS];
+      } else {
+        filteredCmds = CMD_ITEMS.filter(item =>
+          item.label.toLowerCase().includes(q)
+        );
+      }
+      cmdActiveIdx = 0;
+      renderCmdResults();
+    });
+
+    cmdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        cmdActiveIdx = Math.min(cmdActiveIdx + 1, filteredCmds.length - 1);
+        renderCmdResults();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        cmdActiveIdx = Math.max(cmdActiveIdx - 1, 0);
+        renderCmdResults();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filteredCmds[cmdActiveIdx]) {
+          closeCmdPalette();
+          filteredCmds[cmdActiveIdx].action();
+        }
+      } else if (e.key === 'Escape') {
+        closeCmdPalette();
+      }
+    });
+
+    cmdOverlay.addEventListener('click', (e) => {
+      if (e.target === cmdOverlay) closeCmdPalette();
+    });
+
+    // Keyboard shortcut
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (cmdOverlay.classList.contains('show')) {
+          closeCmdPalette();
+        } else {
+          openCmdPalette();
+        }
+      }
+      if (e.key === 'Escape') {
+        closeCmdPalette();
+        closeAbout();
+      }
+    });
+
+    document.getElementById('cmdKbdTrigger').addEventListener('click', openCmdPalette);
+
+    // ===== TOAST =====
+    function showToast(msg) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = msg;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('out');
+        setTimeout(() => toast.remove(), 260);
+      }, 2500);
+    }
+
+    // ===== ABOUT MODAL =====
+    const aboutOverlay = document.getElementById('aboutOverlay');
+
+    function showAbout() { aboutOverlay.classList.add('show'); }
+    function closeAbout() { aboutOverlay.classList.remove('show'); }
+
+    aboutOverlay.addEventListener('click', (e) => {
+      if (e.target === aboutOverlay) closeAbout();
+    });
+
+    // ===== PREVENT DEFAULT CONTEXT MENU ELSEWHERE =====
+    document.addEventListener('contextmenu', (e) => {
+      if (!e.target.closest('.desktop') && !e.target.closest('input') && !e.target.closest('textarea')) {
+        e.preventDefault();
+      }
+    });
+  </script>
+</body>
+</html>
